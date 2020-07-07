@@ -12,6 +12,7 @@ const testUtils = require('../lib/test-utils');
 const async = require('async');
 const sinon = require('sinon');
 const sanitizeFilter = require('../lib/mongodb').sanitizeFilter;
+const removingDollarSign = require('../lib/mongodb').removingDollarSign;
 
 const GeoPoint = require('loopback-datasource-juggler').GeoPoint;
 
@@ -1485,7 +1486,7 @@ describe('mongodb connector', function() {
                 should.not.exist(err);
                 updatedusers.should.have.property('count', 1);
 
-                User.find({where: {name: 'Simon'}}, function(
+                User.find({where: {name: {$eq: 'Simon'}}}, function(
                   err,
                   foundusers,
                 ) {
@@ -3726,6 +3727,27 @@ describe('mongodb connector', function() {
     });
   });
 
+  context('removingDollarSign', () =>{
+    it('removes extra dollar sign(s) in ths operators', () => {
+      let spec = '$eq';
+      let updatedSpec = removingDollarSign(spec);
+      updatedSpec.should.equal('eq');
+
+      spec = '$$eq';
+      updatedSpec = removingDollarSign(spec);
+      updatedSpec.should.equal('eq');
+    });
+
+    it('remains the same if there is the input does not start with dollar sign(s)', () => {
+      let spec = 'eq';
+      let updatedSpec = removingDollarSign(spec);
+      updatedSpec.should.equal(spec);
+
+      spec = 'eq$';
+      updatedSpec = removingDollarSign(spec);
+      updatedSpec.should.equal('eq$');
+    });
+  });
   context('sanitizeFilter()', () => {
     it('returns filter if not an object', () => {
       const input = false;
